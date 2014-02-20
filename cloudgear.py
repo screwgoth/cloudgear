@@ -400,12 +400,16 @@ def install_and_configure_dashboard():
     execute("apt-get install openstack-dashboard -y", True)
     execute("service apache2 restart", True)
 
-initialize_system()
-install_rabbitmq()
-install_database()
-install_and_configure_keystone()
-install_and_configure_glance()
-install_and_configure_nova()
-install_and_configure_quantum()
-install_and_configure_dashboard()
-print_format(" Installation successfull! Login into horizon http://%s/horizon  Username:admin  Password:secret " % ip_address)
+def main(argv):
+	initialize_system()
+	install_rabbitmq()
+	install_database()
+	install_and_configure_keystone()
+	install_and_configure_glance()
+	install_and_configure_nova()
+	install_and_configure_quantum()
+	install_and_configure_dashboard()
+	print_format(" Installation successfull! Login into horizon http://%s/horizon  Username:admin  Password:secret " % ip_address)
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
