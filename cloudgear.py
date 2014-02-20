@@ -1,5 +1,6 @@
 #! /usr/bin/python
 import sys
+import getopt
 import os
 import time
 import fcntl
@@ -11,7 +12,8 @@ import subprocess
 # These modules will be loaded later after downloading
 iniparse = None
 psutil = None
-
+ip_address = ''
+iint = 'eth1'
 mysql_password = "secret"
 
 def kill_process(process_name):
@@ -129,7 +131,6 @@ def initialize_system():
 #==================   Components Installation Starts Here ========================
 #=================================================================================
 
-ip_address = get_ip_address("eth0")
 
 def install_rabbitmq():
     execute("apt-get install rabbitmq-server -y", True)
@@ -375,7 +376,8 @@ def install_and_configure_quantum():
     add_to_conf(quantum_paste_conf, "filter:authtoken", "admin_password", "quantum")
 
     add_to_conf(quantum_plugin_conf, "DATABASE", "sql_connection", "mysql://quantum:quantum@localhost/quantum")
-    add_to_conf(quantum_plugin_conf, "LINUX_BRIDGE", "physical_interface_mappings", "physnet1:eth1")
+    phys = 'physnet1:'+iint
+    add_to_conf(quantum_plugin_conf, "LINUX_BRIDGE", "physical_interface_mappings", phys)
     add_to_conf(quantum_plugin_conf, "VLANS", "tenant_network_type", "vlan")
     add_to_conf(quantum_plugin_conf, "VLANS", "network_vlan_ranges", "physnet1:1000:2999")
 
@@ -401,15 +403,34 @@ def install_and_configure_dashboard():
     execute("service apache2 restart", True)
 
 def main(argv):
-	initialize_system()
-	install_rabbitmq()
-	install_database()
-	install_and_configure_keystone()
-	install_and_configure_glance()
-	install_and_configure_nova()
-	install_and_configure_quantum()
-	install_and_configure_dashboard()
-	print_format(" Installation successfull! Login into horizon http://%s/horizon  Username:admin  Password:secret " % ip_address)
+    mint = 'eth0'
+    try:
+        opts, args = getopt.getopt(argv, "hm:i:", ["mgmt-intf=", "internal-intf="])
+    except getopt.GetoptError:
+        print 'cloudgear.py [-h] [-m <Management interface>] [-i <Internal interface>]'
+        sys.exit(2)
+    for opt,arg in opts:
+        if opt == '-h':
+            print 'cloudgear.py [-h] [-m <Management interface>] [-i <Internal interface>]'
+            sys.exit(0)
+        elif opt in ("-m", "--mgmt-intf"):
+            mint = arg
+            global ip_address
+            ip_address = get_ip_address(mint)
+            print 'IP address of Management interface is : ', ip_address
+        elif opt in ("-i", "--internal-intf"):
+            global iint
+            iint = arg
+            print 'Internal interface is set as : ', iint
+    initialize_system()
+    install_rabbitmq()
+    install_database()
+    install_and_configure_keystone()
+    install_and_configure_glance()
+    install_and_configure_nova()
+    install_and_configure_quantum()
+    install_and_configure_dashboard()
+    print_format(" Installation successfull! Login into horizon http://%s/horizon  Username:admin  Password:secret " % ip_address)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
